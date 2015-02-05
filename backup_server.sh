@@ -1,15 +1,18 @@
 #!/bin/bash
 #
-# Inspiriert von http://www.heinlein-support.de/projekte/rsync-backup/backup-rotate
+# Inspired by and based on http://www.heinlein-support.de/projekte/rsync-backup/backup-rotate
 # Isaac Hailperin <isaac.hailperin@gmail.com>
-# Im August 2014
+# Changelog:
+# 05-Feb-2015 | isaac | gone back to original client/server architecture
 
 #TODO:
-# * check if logger is present on diskstation
 # * test the checks - create test matrix and check
-# * create rotate success file
 
 source backup_server.conf
+
+# log facility
+# note that on synology diskstations, everything below "WARNING" gets discarded.
+LOGGER="logger -p WARNING -t backup" 
 
 SUCCESS="True"
 
@@ -62,7 +65,6 @@ check_disk_free(){
         KBISFREE=$(df "$DATA_PATH" | tail -n1 | sed -e "$GETPERCENTAGE")
         INODEISFREE=$(df -i "$DATA_PATH" | tail -n1 | sed -e "$GETPERCENTAGE")
         if [ $KBISFREE -ge "$HDMINFREE" -o $INODEISFREE -ge $HDMINFREE ] ; then
-            #notify_user_err "Fatal: Not enough space left for rotating backups!"
             $LOGGER "Fatal: Not enough space left for rotating backups!"
             exit
         fi
@@ -74,7 +76,7 @@ check_disk_free(){
 ###
 rotate_snapshots(){
     BACKUP_DIR=${1}
-    $LOGGER "Start rotating snapshots"
+    $LOGGER "Start rotating snapshots for ${BACKUP_DIR}"
     # Create backup dir if not present
     if ! [ -d "$BACKUP_DIR" ] ; then
             mkdir -p "$BACKUP_DIR"
@@ -98,7 +100,7 @@ rotate_snapshots(){
     if [ -d "$BACKUP_DIR/daily.0" ] ; then
             cp -al "$BACKUP_DIR/daily.0" "$BACKUP_DIR/daily.1"
     fi
-    $LOGGER "Finished rotating snapshots"
+    $LOGGER "Finished rotating snapshots for ${BACKUP_DIR}"
     today=$(date +"%d-%b-%Y")
     echo ${today} >${BACKUP_DIR}/${ROTATE_SUCCESS}
 }

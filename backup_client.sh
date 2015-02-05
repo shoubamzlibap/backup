@@ -4,14 +4,12 @@
 # Isaac Hailperin <isaac.hailperin@gmail.com>
 # August 2014
 # Changelog:
-# 06-Nov-2014 - fixed HOME pointing to /root if called by root via sudo -u <username> 
-# 23-Jan-2015 - gone back to the original client/server architecture.
+# 06-Nov-2014 | isaac | fixed HOME pointing to /root if called by root via sudo -u <username> 
+# 05-Feb-2015 | isaac | gone back to the original client/server architecture.
 
-# TODO:
-# * status.html does not work on linux. Maybe a security feature?
+# TODO/ROADMAP:
 # * count retries and stop after a certain number
-# * delete unused code (e.g. lock related functions)
-
+# * Add multilang support.
 
 CONFIG_FILE="backup_client.conf"
 
@@ -62,56 +60,9 @@ EOF
 ###
 print_sudo_additions() {
     echo Please make sure your sudo config contains the following lines:
-    echo "${MY_NAME}    ALL=(ALL:ALL) NOPASSWD: /bin/mount -t cifs //${SAMBA_IP}/${SHARE_NAME} ${DATA_PATH} -o credentials=${CREDENTIAL_FILE} -o uid=${MY_UID} -o gid=${MY_GID}"
-    echo "${MY_NAME}    ALL=(ALL:ALL) NOPASSWD: /bin/umount ${DATA_PATH}"
+    echo "${MY_NAME}    ALL=(ALL:ALL) NOPASSWD: /bin/mount -t cifs //${SAMBA_IP}/${SHARE_NAME} ${DATA_MOUNTPOINT} -o credentials=${CREDENTIAL_FILE} -o uid=${MY_UID} -o gid=${MY_GID}"
+    echo "${MY_NAME}    ALL=(ALL:ALL) NOPASSWD: /bin/umount ${DATA_MOUNTPOINT}"
 }
-
-###
-# create a lock
-###
-create_lock(){
-    lock_dir=${1}
-    mkdir ${lock_dir} 2>/dev/null
-    if [ $? != 0 ]; then
-        ${LOGGER} "could not create ${lock_dir}"
-        exit 1
-    fi
-}
-
-###
-# create a lock without failing if it allready exists
-###
-create_soft_lock(){
-    lock_dir=${1}
-    mkdir ${lock_dir} 2>/dev/null
-    if [ $? != 0 ]; then
-        if [ -d ${lock_dir} ];then
-            return
-        fi
-        ${LOGGER} "could not create ${lock_dir}"
-        exit 1
-    fi
-}
-
-###
-# delete a lock
-###
-delete_lock(){
-    lock_dir=${1}
-    if [ -d ${lock_dir} ]; then
-        rmdir ${lock_dir}
-        if [ $? != 0 ]; then
-            message="${lock_dir} could not be deleted."
-            ${LOGGER} "${message}"
-        fi
-    else
-        message="Folgendes Verzeichnis existiert nicht, obwohl es das sollte: ${lock_dir}."
-        message="The following directory does not exists, even though it should: ${lock_dir}."
-        ${LOGGER} "${message}"
-    fi
-}
-
-
 
 ###
 # check last successfull backup
@@ -154,10 +105,10 @@ mount_backup_medium(){
     fi
     # mount backup
     # first check if allready mounted:
-    mount |grep ${DATA_PATH}
+    mount |grep ${DATA_MOUNTPOINT}
     mounted=$?
     if [ "${mounted}" != "0" ]; then
-        sudo mount -t cifs //${SAMBA_IP}/${SHARE_NAME} ${DATA_PATH} -o credentials=${CREDENTIAL_FILE} -o uid=${MY_UID} -o gid=${MY_GID}
+        sudo mount -t cifs //${SAMBA_IP}/${SHARE_NAME} ${DATA_MOUNTPOINT} -o credentials=${CREDENTIAL_FILE} -o uid=${MY_UID} -o gid=${MY_GID}
         ret_val_mount="$?"
         if [ "${ret_val_mount}" != "0" ]; then
             $LOGGER -p user.err "Could not mount samba share on ${SAMBA_IP}, even though host is up"
@@ -229,7 +180,7 @@ unmount_backup_medium(){
     if [ ${NO_MOUNT} == "True" ]; then
         return
     fi
-    sudo umount ${DATA_PATH}
+    sudo umount ${DATA_MOUNTPOINT}
     if [ "$?" != "0" ];then 
         print_sudo_additions
     fi
