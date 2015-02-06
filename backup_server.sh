@@ -5,9 +5,6 @@
 # Changelog:
 # 05-Feb-2015 | isaac | gone back to original client/server architecture
 
-#TODO:
-# * test the checks - create test matrix and check
-
 source backup_server.conf
 
 # log facility

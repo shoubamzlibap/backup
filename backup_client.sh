@@ -7,10 +7,6 @@
 # 06-Nov-2014 | isaac | fixed HOME pointing to /root if called by root via sudo -u <username> 
 # 05-Feb-2015 | isaac | gone back to the original client/server architecture.
 
-# TODO/ROADMAP:
-# * count retries and stop after a certain number
-# * Add multilang support.
-
 CONFIG_FILE="backup_client.conf"
 
 source ${CONFIG_FILE}

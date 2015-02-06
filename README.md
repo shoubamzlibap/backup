@@ -8,3 +8,11 @@ It is based on a project for servers, and with this I try to adapt it to a perso
 environment. The basic difference is that a laptop does not run all the time, and also might not run
 long enough to do a successfull backup. That is why the script keeps trying untill it is successfull.
 Also, the rotator on the server checks if the client was successfull bevor it attempts to rotate.
+
+
+ROADMAP:
+=======
+* count retries and stop after a certain number
+* Add multilang support.
+
+
