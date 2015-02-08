@@ -144,7 +144,7 @@ do_backup(){
             ERR_PERMISSION=$(cat "$LOGFILE"|grep -c 'Permission denied (13)')
      
             $LOGGER -p user.warn "Backup TEILWEISE ERFOLGREICH beendet mit RET-CODE $RET, Log-File: $LOGFILE"
-            update_log "TEILWEISE Erfolgreich beendet.\nMöglicherweise Probleme mit Rechten."
+            update_log "TEILWEISE Erfolgreich beendet. Möglicherweise Probleme mit Rechten."
             update_status "TEILWEISE Erfolgreich beendet."
             ;;
     24) #some files vanished before they could be transferred (code 24) at main.c(1070) [sender=3.0.8]
@@ -152,13 +152,13 @@ do_backup(){
             echo ${today} >${BACKUP_SUCCESS_FILE}
             echo ${today} >${BACKUP_SUCCESS_SERVER_FILE}
             update_last_success "${today}" 
-            update_log "TEILWEISE Erfolgreich beendet.\nEinige Dateien wurden vorm syncen gelöscht."
+            update_log "TEILWEISE Erfolgreich beendet. Einige Dateien wurden vorm syncen gelöscht."
             update_status "TEILWEISE Erfolgreich beendet."
             ;;
     130)
     #z.B. Abbruch durch <CTRL-C>
             $LOGGER -p user.err "Backup ABGEBROCHEN mit RET-CODE $RET, Log-File: $LOGFILE"
-            update_log "Aus unbekanntem Grund beendet\nMöglicherweise Abbruch durch Benutzer."
+            update_log "Aus unbekanntem Grund beendet Möglicherweise Abbruch durch Benutzer."
             update_status "Abgebrochen."
             ;;
     *)
