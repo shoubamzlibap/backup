@@ -1,17 +1,29 @@
-#!/bin/bash
+#!/bin/ash
 #
 # Inspired by and based on http://www.heinlein-support.de/projekte/rsync-backup/backup-rotate
 # Isaac Hailperin <isaac.hailperin@gmail.com>
 # Changelog:
 # 05-Feb-2015 | isaac | gone back to original client/server architecture
+# 17-Jul-2015 | isaac | switching to ash. added debug option
 
-source backup_server.conf
+#
+# call with "debug" as first argument to enable debugging
+#
+
+DEBUG=${1}
+
+source /usr/local/etc/backup_server.conf
 
 # log facility
 # note that on synology diskstations, everything below "WARNING" gets discarded.
 LOGGER="logger -p WARNING -t backup" 
 
 SUCCESS="True"
+
+debug(){
+    message=${1}
+    [ x${DEBUG} == x'debug' ] && echo $(date +%Y-%m-%d\ %H:%M:%S) ${message}
+}
 
 ###
 # check if an event was successfull today
@@ -29,6 +41,7 @@ check_success_today() {
     else
         SUCCESS="False"
     fi
+    debug "SUCCESS=${SUCCESS}"
 }
 
 ###
@@ -36,6 +49,7 @@ check_success_today() {
 # sets SUCCESS=False if no successfull backup today
 ###
 check_successfull_backup(){
+    debug "check_successfull_backup"
     BACKUP_SUCCESS_FILE=${1}/${SUCCESS_FILE}
     check_success_today ${BACKUP_SUCCESS_FILE}
 }
@@ -45,6 +59,7 @@ check_successfull_backup(){
 # sets SUCCESS=False if no successfull backup today
 ###
 check_successfull_rotate() {
+    debug "check_successfull_rotate"
     ROTATE_SUCCESS_FILE=${1}/${ROTATE_SUCCESS}
     if [ ! -f ${ROTATE_SUCCESS_FILE} ]; then
         echo "never rotated" >${ROTATE_SUCCESS_FILE}
@@ -56,6 +71,7 @@ check_successfull_rotate() {
 # Pruefe auf freien Plattenplatz
 ###
 check_disk_free(){
+    debug "check_disk_free"
     DATA_PATH=${1}
     GETPERCENTAGE='s/.* \([0-9]\{1,3\}\)%.*/\1/'
     if $CHECK_HDMINFREE ; then
@@ -72,6 +88,7 @@ check_disk_free(){
 # rotate snapshots 
 ###
 rotate_snapshots(){
+    debug "rotate_snapshots"
     BACKUP_DIR=${1}
     $LOGGER "Start rotating snapshots for ${BACKUP_DIR}"
     # Create backup dir if not present
@@ -106,6 +123,7 @@ rotate_snapshots(){
 # action
 ##
 for client in ${CLIENT_DIRS}; do
+    debug "starting proccess for ${client}"
     check_disk_free ${client}
     check_successfull_backup ${client} # sets SUCCESS=False if no successfull backup today
     if [ ${SUCCESS} == "False" ]; then
