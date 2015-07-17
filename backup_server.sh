@@ -45,13 +45,40 @@ check_success_today() {
 }
 
 ###
+# check if an event was successfull yesterday
+# sets SUCCESS=False if not successfull today
+# $1: file that should be checked
+###
+check_success_yesterday() {
+    SUCCESS_FILE=${1}
+    if [ -f ${SUCCESS_FILE} ]; then
+        last_success_date=$(cat ${SUCCESS_FILE})
+        day=$(date "+%d-%b-%Y"| awk -F- '{print $1}')
+        # this will fail on first of months, but that should be ok
+        yday=$(( $day - 1 ))
+        month_year=$(date "+%d-%b-%Y"| awk -F- '{print $2 "-" $3}')
+        yesterday="${yday}-${month_year}"
+        if [ "${last_success_date}" != "${yesterday}" ]; then
+            SUCCESS="False"
+        fi
+    else
+        SUCCESS="False"
+    fi
+    debug "SUCCESS=${SUCCESS}"
+}
+
+
+###
 # check last successfull backup
 # sets SUCCESS=False if no successfull backup today
 ###
 check_successfull_backup(){
     debug "check_successfull_backup"
-    BACKUP_SUCCESS_FILE=${1}/${SUCCESS_FILE}
-    check_success_today ${BACKUP_SUCCESS_FILE}
+    BACKUP_SUCCESS_FILE=${1}/daily.0/${SUCCESS_FILE}
+    debug "${BACKUP_SUCCESS_FILE}"
+    # we check yesterday, because the successfile will be a day old, since its written after
+    # the backup
+    check_success_yesterday ${BACKUP_SUCCESS_FILE}
 }
 
 ###
@@ -61,6 +88,7 @@ check_successfull_backup(){
 check_successfull_rotate() {
     debug "check_successfull_rotate"
     ROTATE_SUCCESS_FILE=${1}/${ROTATE_SUCCESS}
+    debug "${ROTATE_SUCCESS_FILE}"
     if [ ! -f ${ROTATE_SUCCESS_FILE} ]; then
         echo "never rotated" >${ROTATE_SUCCESS_FILE}
     fi      
@@ -102,12 +130,13 @@ rotate_snapshots(){
     # all other snapshots are moved by one
     for OLD in 6 5 4 3 2 1  ; do
             if [ -d "$BACKUP_DIR/daily.$OLD" ] ; then
-                NEW=$[ $OLD + 1 ]
+                NEW=$(( $OLD + 1 ))
                 # save the date
-                touch "$BACKUP_DIR/.timestamp" -r "$BACKUP_DIR/daily.$OLD"
+                # touch on diskstation does not know optino "-r"
+                #touch "$BACKUP_DIR/.timestamp" -r "$BACKUP_DIR/daily.$OLD"
                 mv "$BACKUP_DIR/daily.$OLD" "$BACKUP_DIR/daily.$NEW"
                 # apply saved date
-                touch "$BACKUP_DIR/daily.$NEW" -r "$DATA_PATH/.timestamp"
+                #touch "$BACKUP_DIR/daily.$NEW" -r "$DATA_PATH/.timestamp"
             fi
     done
     # copy level 0 snapshot by hardlinking it to level 1
@@ -138,3 +167,5 @@ for client in ${CLIENT_DIRS}; do
     fi
     rotate_snapshots ${client} 
 done
+
+
