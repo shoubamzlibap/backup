@@ -6,6 +6,7 @@
 # Changelog:
 # 06-Nov-2014 | isaac | fixed HOME pointing to /root if called by root via sudo -u <username> 
 # 05-Feb-2015 | isaac | gone back to the original client/server architecture.
+# 14-May-2016 | isaac | added check_media_mount
 
 CONFIG_FILE="backup_client.conf"
 
@@ -116,6 +117,21 @@ mount_backup_medium(){
 }
 
 ###
+# check if backup media is mounted
+###
+check_media_mount() {
+    if [ ${NO_MOUNT_CHECK} == "True" ]; then
+        return
+    fi
+    mount |grep ${DATA_MOUNTPOINT}
+    mounted=$?
+    if [ "${mounted}" != "0" ]; then
+        update_log "Kein Backup moeglich, weil Backup medium nicht eingebunden ist."
+        exit 1
+    fi
+}
+
+###
 # und jetzt das backup
 ###
 do_backup(){
@@ -189,5 +205,6 @@ print_dummy_statusfile
 check_last_successfull_backup # exits if successfull today
 check_concurrent_backup # exits if backup is allready running
 mount_backup_medium
+check_media_mount
 do_backup
 unmount_backup_medium
