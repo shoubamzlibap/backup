@@ -7,10 +7,14 @@
 # 06-Nov-2014 | isaac | fixed HOME pointing to /root if called by root via sudo -u <username> 
 # 05-Feb-2015 | isaac | gone back to the original client/server architecture.
 # 14-May-2016 | isaac | added check_media_mount
+# 15-May-2016 | isaac | added debug mode (call with 'debug' as first argument)
 
-CONFIG_FILE="backup_client.conf"
+CONFIG_FILE="/usr/local/etc/backup_client.conf"
+
+DEBUG=${1}
 
 source ${CONFIG_FILE}
+
 
 ###
 # functions
@@ -18,10 +22,19 @@ source ${CONFIG_FILE}
 ###
 
 ###
+# print debug messages
+###
+debug(){
+    message=${1}
+    [ x${DEBUG} == x'debug' ] && echo "$(date +%Y-%m-%d\ %H:%M:%S) DEBUG: ${message}"
+}
+
+###
 # update the status file
 ###
 update_status(){
     message=${1}
+    debug "updateing status file with '${message}'"
     timestamp=$(date +"%d-%b-%Y %T")
     prefix="+ Aktueller Status:"
     sed -i "s/${prefix}.*/${prefix} ${message} (${timestamp})/" ${STATUS_FILE}
@@ -29,12 +42,14 @@ update_status(){
 
 update_last_success(){
     message=${1}
+    debug "updateting '${STATUS_FILE}' with '${message}'"
     prefix="+ Letztes erfolgreiches Backup am"
     sed -i "s/${prefix}.*/${prefix} ${message}/" ${STATUS_FILE}
 }
 
 update_log(){
     message=$(echo ${1}| sed "s#\/#\\\/#g"|sed "s#\\n#\\\\n#g" )
+    debug "updating log with '$message'"
     timestamp=$(date +"%d-%b-%Y %T")
     prefix="+ Letzte Logmeldung:"
     sed -i "s#${prefix}.*#${prefix} ${message} (${timestamp})#" ${STATUS_FILE}
@@ -66,11 +81,13 @@ print_sudo_additions() {
 ###
 check_last_successfull_backup(){
     if [ ! -f ${BACKUP_SUCCESS_FILE} ]; then
+        debug "No successfull backup found for today"
         update_log "Bislang keine erfolgreichen Backups."
     else
         last_backup_date=$(cat ${BACKUP_SUCCESS_FILE})
         today=$(date "+%d-%b-%Y")
         if [ "${last_backup_date}" == "${today}" ]; then
+            debug "Found current backup, exiting"
             exit
         fi
     fi
@@ -82,6 +99,7 @@ check_last_successfull_backup(){
 check_concurrent_backup(){
     ps -elf |grep rsync |grep ${LOCALHOME}
     if [ "$?" == "0" ]; then
+        debug "backup is allready rounning, exiting"
         exit
     fi
 }
@@ -94,6 +112,7 @@ mount_backup_medium(){
         return
     fi
     # check if backup nas is up and reachable
+    debug "Mounting backup medium"
     ping -c 1 ${SAMBA_IP} >/dev/null
     ret_val_pingcheck="$?"
     if [  "${ret_val_pingcheck}" != "0" ];then
@@ -126,9 +145,11 @@ check_media_mount() {
     mount |grep ${DATA_MOUNTPOINT}
     mounted=$?
     if [ "${mounted}" != "0" ]; then
+        debug "Did not find mountedbackup medium, exiting"
         update_log "Kein Backup moeglich, weil Backup medium nicht eingebunden ist."
         exit 1
     fi
+    debug "Backup medium found"
 }
 
 ###
@@ -137,6 +158,7 @@ check_media_mount() {
 do_backup(){
     $LOGGER -p user.info "START Backup of $LOCALHOME to $BACKUP_DIR"
     update_status "Backup gestartet."
+    debug "executing backup"
     if [ ! -f $EXCLUDES ];then
         touch $EXCLUDES
     fi
@@ -196,6 +218,7 @@ unmount_backup_medium(){
     if [ "$?" != "0" ];then 
         print_sudo_additions
     fi
+    debug "Successfully umounted backup medium"
 }
 
 ###
